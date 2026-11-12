@@ -1,9 +1,8 @@
-using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
-namespace SG 
+namespace SG
 {
     public class InputManager : MonoBehaviour
     {
@@ -37,6 +36,12 @@ namespace SG
             gameObject.SetActive(false);
         }
 
+        private void OnDestroy()
+        {
+            // Событие статическое, поэтому отписываемся, иначе оно будет вызывать уничтоженный объект
+            SceneManager.activeSceneChanged -= OnSceneChanged;
+        }
+
         private void OnSceneChanged(Scene currentScene, Scene nextScene)
         {
             Scene activeScene = SceneManager.GetActiveScene();
@@ -50,19 +55,27 @@ namespace SG
                 gameObject.SetActive(true);
             }
         }
+
         private void OnEnable()
         {
             if (playerControls == null)
                 playerControls = new PlayerControls();
 
-            playerControls.Player.LeftClick.performed += i => leftClick = true;
+            // Именованный метод можно отписать в OnDisable, лямбду i => ... нельзя
+            playerControls.Player.LeftClick.performed += OnLeftClick;
 
             playerControls.Enable();
         }
 
         private void OnDisable()
         {
+            playerControls.Player.LeftClick.performed -= OnLeftClick;
             playerControls.Disable();
+        }
+
+        private void OnLeftClick(InputAction.CallbackContext context)
+        {
+            leftClick = true;
         }
 
         private void Update()
@@ -86,10 +99,12 @@ namespace SG
 
                 Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
 
+                // Двигаемся только если луч во что-то попал
                 if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity))
+                {
                     movementPosition = hit.point;
-
-                player.playerLocomotionManager.MovePlayerToPosition(movementPosition);
+                    player.playerLocomotionManager.MovePlayerToPosition(movementPosition);
+                }
             }
         }
 
@@ -97,7 +112,7 @@ namespace SG
         {
             if (movementPosition == Vector3.zero)
                 return;
-            
+
             Gizmos.color = Color.red;
             Gizmos.DrawSphere(movementPosition, 0.2f);
         }
