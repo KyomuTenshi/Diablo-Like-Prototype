@@ -10,6 +10,7 @@ namespace SG
 
         [Header("World Index")]
         // Номер сцены мира в Build Settings
+        public int menuSceneIndex = 0;
         [SerializeField] int worldSceneIndex = 1;
 
         private void Awake()
