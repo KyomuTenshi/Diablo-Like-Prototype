@@ -9,6 +9,8 @@ namespace SG
 
         // Ссылка на корутину, чтобы остановить старую при выборе новой цели
         private Coroutine hasReachedDestinationCoroutine;
+        // Скорость поворота в градусах в секунду
+        [SerializeField] float rotationSpeed = 360;
 
         private void Awake()
         {
@@ -47,16 +49,30 @@ namespace SG
             player.playerNetworkManager.isMoving.Value = false;
         }
 
-        // Агент бежит по NavMesh в своём дочернем объекте, а персонаж (родитель) должен за ним следовать
+        // Агент бежит по NavMesh в дочернем объекте, а персонаж (родитель) следует за ним
         private void SyncCharacterWithAgent()
         {
-            // Сначала переносим персонажа туда, где сейчас агент
+            // Переносим персонажа туда, где сейчас агент
             player.transform.position = player.navMeshAgent.transform.position;
 
             if (player.playerNetworkManager.isMoving.Value)
-                player.transform.rotation = player.navMeshAgent.transform.rotation;
+            {
+                // steeringTarget — ближайшая точка пути, к которой агент идёт прямо сейчас
+                Vector3 desiredDirection = player.navMeshAgent.steeringTarget - player.transform.position;
+                // Обнуляем высоту, чтобы персонаж не наклонялся вверх или вниз
+                desiredDirection.y = 0;
 
-            // Затем возвращаем агента в центр персонажа
+                // Проверяем после обнуления y, иначе LookRotation может получить нулевой вектор
+                if (desiredDirection.sqrMagnitude > 0.001f)
+                {
+                    Quaternion desiredRotation = Quaternion.LookRotation(desiredDirection);
+
+                    // Поворачиваем плавно, не быстрее rotationSpeed градусов в секунду
+                    player.transform.rotation = Quaternion.RotateTowards(player.transform.rotation, desiredRotation, rotationSpeed * Time.deltaTime);
+                }
+            }
+
+            // Возвращаем агента в центр персонажа, чтобы он не «убегал» от родителя
             player.navMeshAgent.transform.localPosition = Vector3.zero;
             player.navMeshAgent.transform.localRotation = Quaternion.identity;
         }

@@ -28,7 +28,6 @@ namespace SG
             {
                 // Владелец двигает персонажа сам и публикует позицию для остальных
                 playerLocomotionManager.HandleMovement();
-
                 playerNetworkManager.networkPosition.Value = transform.position;
                 playerNetworkManager.networkRotation.Value = transform.rotation;
             }
